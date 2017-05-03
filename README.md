@@ -4,7 +4,7 @@ Aplicação de exemplo do Docker do tutorial: https://docs.docker.com/get-starte
 ## Pré-requisitos
 * Docker instalado e configurado corretamente
 
-## Comandos básicos
+## Parte 2 - Containers
 * Cria a imagem com o nome amigável de "friendlyhello":
 
 `docker build -t friendlyhello .`
@@ -29,7 +29,7 @@ Aplicação de exemplo do Docker do tutorial: https://docs.docker.com/get-starte
 
 `docker stop <CONTAINER ID>`
 
-## Comandos úteis
+### Comandos úteis
 ```shell
 docker build -t friendlyname .  # Create image using this directory's Dockerfile
 docker run -p 4000:80 friendlyname  # Run "friendlyname" mapping port 4000 to 80
@@ -47,4 +47,30 @@ docker login             # Log in this CLI session using your Docker credentials
 docker tag <image> username/repository:tag  # Tag <image> for upload to registry
 docker push username/repository:tag            # Upload tagged image to registry
 docker run username/repository:tag                   # Run image from a registry
+```
+## Parte 3 - Serviços
+
+* Inicia o serviço descrito no docker-compose.yml:
+
+`docker swarm init`
+
+`docker stack deploy -c docker-compose.yml getstartedlab`
+
+* Ver os 5 containers rodando:
+
+`docker stack ps getstartedlab`
+
+* Gerar requisições para http://localhost e observar que o ID do servidor muda, pois está sendo atendido por um container diferente
+
+* Parando o serviço:
+
+`docker stack rm getstartedlab`
+
+### Comandos úteis
+```shell
+docker stack ls              # List all running applications on this Docker host
+docker stack deploy -c <composefile> <appname>  # Run the specified Compose file
+docker stack services <appname>       # List the services associated with an app
+docker stack ps <appname>   # List the running containers associated with an app
+docker stack rm <appname>                             # Tear down an application
 ```
