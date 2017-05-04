@@ -6,28 +6,33 @@ Aplicação de exemplo do Docker do tutorial: https://docs.docker.com/get-starte
 
 ## Parte 2 - Containers
 * Cria a imagem com o nome amigável de "friendlyhello":
-
-`docker build -t friendlyhello .`
+```shell
+docker build -t friendlyhello .
+```
 
 * Lista as imagens criadas:
-
-`docker images`
+```shell
+docker images
+```
 
 * Executa a imagem, mapeando a porta 80 do container para a porta 4000 do host:
-
-`docker run -p 4000:80 friendlyhello`
+```shell
+docker run -p 4000:80 friendlyhello
+```
 
 * Executa a imagem **em background** e retorna o id do container:
-
-`docker run -d -p 4000:80 friendlyhello`
+```shell
+docker run -d -p 4000:80 friendlyhello
+```
 
 * Exibe os containers em execução:
-
-`docker ps`
+```shell
+docker ps
+```
 
 * Para a execução do container:
-
-`docker stop <CONTAINER ID>`
+```shell
+docker stop <CONTAINER ID>`
 
 ### Comandos úteis
 ```shell
@@ -51,20 +56,21 @@ docker run username/repository:tag                   # Run image from a registry
 ## Parte 3 - Serviços
 
 * Inicia o serviço descrito no docker-compose.yml:
-
-`docker swarm init`
-
-`docker stack deploy -c docker-compose.yml getstartedlab`
+```shell
+docker swarm init
+docker stack deploy -c docker-compose.yml getstartedlab
+```
 
 * Ver os 5 containers rodando:
-
-`docker stack ps getstartedlab`
-
+```shell
+docker stack ps getstartedlab
+```
 * Gerar requisições para http://localhost e observar que o ID do servidor muda, pois está sendo atendido por um container diferente
 
 * Parando o serviço:
-
-`docker stack rm getstartedlab`
+```shell
+docker stack rm getstartedlab
+```
 
 ### Comandos úteis
 ```shell
@@ -86,17 +92,17 @@ $ curl -L https://github.com/docker/machine/releases/download/v0.11.0/docker-mac
 ```
 
 * Criar duas máquinas virtuais para o cluster:
-
-`docker-machine create --driver virtualbox myvm1`
-
-`docker-machine create --driver virtualbox myvm2`
+```shell
+docker-machine create --driver virtualbox myvm1
+docker-machine create --driver virtualbox myvm2
+```
 
 * Obter o IP da myvm1:
-
-`docker-machine ls`
+```shell
+docker-machine ls
+```
 
 * Tornar a máquina **myvm1** o manager do cluster:
-
 ```shell
 docker-machine ssh myvm1 "docker swarm init --advertise-addr <IP DA MYVM1>:2377"`
 ```
@@ -130,7 +136,7 @@ docker-machine ssh myvm1 "docker stack ps getstartedlab"
 
 * Acesse a aplicação pelo IP das duas VMs (http://192.168.99.100 e http://192.168.99.101) e verifique que a mesma aplicação está disponível.
 
-* Pare o cluster
+* Caso queira parar o cluster
 
 ```shell
 docker-machine ssh myvm1 "docker stack rm getstartedlab"
@@ -153,4 +159,39 @@ docker-machine stop $(docker-machine ls -q)               # Stop all running VMs
 docker-machine rm $(docker-machine ls -q) # Delete all VMs and their disk images
 docker-machine scp docker-compose.yml myvm1:~     # Copy file to node's home dir
 docker-machine ssh myvm1 "docker stack deploy -c <file> <app>"   # Deploy an app
+```
+
+## Parte 4 - Stacks
+
+### Pré-requisitos
+O cluster da seção anterior deve estar funcionando
+
+* Edite o arquivo `docker-compose.yml` e adicionar o novo serviço após o serviço `web` e antes de `networks:`:
+```yaml
+visualizer:
+    image: dockersamples/visualizer:stable
+    ports:
+      - "8080:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+    networks:
+      - webnet
+```
+
+* Atualize o arquivo `docker-compose.yml` no manager e realize o novo deploy:
+```shell
+docker-machine scp docker-compose.yml myvm1:~
+docker-machine ssh myvm1 "docker stack deploy -c docker-compose.yml getstartedlab"
+```
+
+* Verifique o nome serviço, que lista os containers e os nós do cluster, executando:
+
+`http://192.68.99.101:8080`
+
+* Observe que o serviço do visualizador possui somente 1 container, que roda no manager. A aplicação possui vários, distribuídos no cluster:
+```shell
+docker-machine ssh myvm1 "docker stack ps getstartedlab"
 ```
