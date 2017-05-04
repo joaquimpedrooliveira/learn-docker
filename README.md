@@ -217,5 +217,14 @@ docker-machine ssh myvm1 "mkdir ./data"
 docker-machine scp docker-compose.yml myvm1:~
 docker-machine ssh myvm1 "docker stack deploy -c docker-compose.yml getstartedlab"
 ```
+
 * Acesse a aplicação e verifique que o contador de visitantes agora é persistente: 
 `http://192.168.99.100/`
+
+* Para verificar que os dados sobrevivem à interrupção do serviço, pare o serviço, reinicie e veja que o número de visitas continua de onde havia parado:
+```shell
+docker-machine ssh myvm1 "docker stack rm  getstartedlab"
+docker-machine ssh myvm1 "docker stack deploy -c docker-compose.yml getstartedlab"
+```
+
+Acesse `http://192.168.99.100/`
