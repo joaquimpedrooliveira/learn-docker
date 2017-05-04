@@ -74,3 +74,83 @@ docker stack services <appname>       # List the services associated with an app
 docker stack ps <appname>   # List the running containers associated with an app
 docker stack rm <appname>                             # Tear down an application
 ```
+
+## Parte 4 - Swarms
+
+* No Linux, instalar a ferramenta [docker-machine](https://docs.docker.com/machine/), para poder criar máquinas virtuais com docker. Instruções de instalação: https://github.com/docker/machine/releases
+
+```shell
+$ curl -L https://github.com/docker/machine/releases/download/v0.11.0/docker-machine-`uname -s`-`uname -m` >/tmp/docker-machine &&
+    chmod +x /tmp/docker-machine &&
+    sudo cp /tmp/docker-machine /usr/local/bin/docker-machine
+```
+
+* Criar duas máquinas virtuais para o cluster:
+
+`docker-machine create --driver virtualbox myvm1`
+
+`docker-machine create --driver virtualbox myvm2`
+
+* Obter o IP da myvm1:
+
+`docker-machine ls`
+
+* Tornar a máquina **myvm1** o manager do cluster:
+
+```shell
+docker-machine ssh myvm1 "docker swarm init --advertise-addr <IP DA MYVM1>:2377"`
+```
+
+Este comando retorna o comando de join que os workers devem usar para entrar no cluster.
+
+* Executar o comando acima na **myvm2**
+```shell
+docker-machine ssh myvm2 "docker swarm join \
+     --token <TOKEN DO COMANDO ANTERIOR> \
+     <IP DA MYVM1>:2377"
+```
+
+* Copie o arquivo `docker-compose.yml` para o manager do cluster:
+
+```shell
+docker-machine scp docker-compose.yml myvm1:~
+```
+
+* Ordene o manager para implantar a aplicação no cluster:
+
+```shell
+docker-machine ssh myvm1 "docker stack deploy -c docker-compose.yml getstartedlab"
+```
+
+* Verifique que alguns containers estão rodando na **myvm1** e outros na **myvm2**
+
+```shell
+docker-machine ssh myvm1 "docker stack ps getstartedlab"
+```
+
+* Acesse a aplicação pelo IP das duas VMs (http://192.168.99.100 e http://192.168.99.101) e verifique que a mesma aplicação está disponível.
+
+* Pare o cluster
+
+```shell
+docker-machine ssh myvm1 "docker stack rm getstartedlab"
+```
+
+### Comandos úteis
+
+```shell
+docker-machine create --driver virtualbox myvm1 # Create a VM (Mac, Win7, Linux)
+docker-machine create -d hyperv --hyperv-virtual-switch "myswitch" myvm1 # Win10
+docker-machine env myvm1                # View basic information about your node
+docker-machine ssh myvm1 "docker node ls"         # List the nodes in your swarm
+docker-machine ssh myvm1 "docker node inspect <node ID>"        # Inspect a node
+docker-machine ssh myvm1 "docker swarm join-token -q worker"   # View join token
+docker-machine ssh myvm1   # Open an SSH session with the VM; type "exit" to end
+docker-machine ssh myvm2 "docker swarm leave"  # Make the worker leave the swarm
+docker-machine ssh myvm1 "docker swarm leave -f" # Make master leave, kill swarm
+docker-machine start myvm1            # Start a VM that is currently not running
+docker-machine stop $(docker-machine ls -q)               # Stop all running VMs
+docker-machine rm $(docker-machine ls -q) # Delete all VMs and their disk images
+docker-machine scp docker-compose.yml myvm1:~     # Copy file to node's home dir
+docker-machine ssh myvm1 "docker stack deploy -c <file> <app>"   # Deploy an app
+```
